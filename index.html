@@ -167,18 +167,24 @@
     .nav button svg { width: 24px; height: 24px; }
   }
 
+  /* ---------- iPad em retrato (a partir de 820px): mesa e decisao lado a lado ---------- */
+  @media (min-width: 820px) {
+    .treino-grid { max-width: 1000px; margin: 0 auto; display: grid;
+                   grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+    .table-wrap { height: 470px; max-width: none; margin: 0; }
+    .actions, .feedback, .porque, .ideias, .scorebar, .next-row { max-width: none; }
+    .feedback { margin-top: 0; }
+  }
+
   /* ---------- ecrãs grandes / iPad em paisagem (a partir de 1000px) ---------- */
   @media (min-width: 1000px) {
     h1 { font-size: 1.5rem; margin-bottom: 2px; }
     .grid { grid-template-columns: repeat(13, 56px); gap: 4px; }
     .cell { width: 56px; height: 56px; font-size: 0.88rem; }
-    /* Treino: mesa à esquerda, decisão e explicação à direita */
-    .treino-grid { max-width: 1120px; margin: 0 auto; display: grid;
-                   grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: start; }
-    .table-wrap { height: 560px; max-width: none; margin: 0; }
-    .actions, .feedback, .porque, .ideias, .scorebar, .next-row { max-width: none; }
+    .treino-grid { max-width: 1120px; grid-template-columns: 1.05fr 1fr; gap: 28px; }
+    .table-wrap { height: 560px; }
     .actions button { padding: 20px; font-size: 1.1rem; }
-    .feedback { font-size: 1.05rem; margin-top: 0; }
+    .feedback { font-size: 1.05rem; }
     /* Plano e Método: listas em duas colunas, para aproveitar a largura */
     .plano { max-width: 1100px; }
     #planoLista { column-count: 2; column-gap: 20px; }
@@ -200,7 +206,7 @@
 </head>
 <body>
   <h1>Treino Pré-flop · Spin &amp; Go Nitro</h1>
-  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop</div>
+  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v7</span></div>
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
@@ -343,7 +349,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Charts</button>
   </nav>
 
-  <div class="carimbo" id="build">build 22/09/2026 · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
+  <div class="carimbo" id="build">build 22/09/2026 02:45 · v7 · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
 
 <script>
 'use strict';
