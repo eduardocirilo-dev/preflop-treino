@@ -202,6 +202,37 @@
     </div>
   </div>
 
+  <!-- METODO -->
+  <div class="pane" id="paneMetodo">
+    <div class="plano">
+      <div class="plano-topo">
+        <div class="etapa-tit" style="margin:0">O plano de hoje</div>
+        <button class="reset" id="btnMetodoInfo">como funciona</button>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-n" id="mNovas">—</div><div class="kpi-l">novas hoje</div></div>
+        <div class="kpi"><div class="kpi-n" id="mRevs">—</div><div class="kpi-l">revisões devidas</div></div>
+        <div class="kpi"><div class="kpi-n" id="mFeitas">—</div><div class="kpi-l">sessões feitas</div></div>
+        <div class="kpi"><div class="kpi-n" id="mDias">—</div><div class="kpi-l">dias p/ acabar</div></div>
+      </div>
+      <div class="etapa-tit">1 · Novas — por esta ordem</div>
+      <div id="mListaNovas"></div>
+      <div class="etapa-tit">2 · Revisões de hoje</div>
+      <div id="mListaRevs"></div>
+      <details class="ideias" id="mDet">
+        <summary>Como funciona este plano</summary>
+        <ul style="margin-left:18px">
+          <li><b>4 sessões novas por dia</b>, pela ordem do trilho. No fim do dia: ~120 perguntas.</li>
+          <li><b>10 minutos primeiro para as revisões</b> — acorda a memória antes do novo.</li>
+          <li><b>Cada sessão volta 3 vezes:</b> 2 dias depois, 1 semana depois e 3 semanas depois.</li>
+          <li><b>Abaixo de 90%, repete no dia seguinte.</b> Não avanças só porque marcaste.</li>
+          <li><b>Não passas de etapa</b> enquanto a anterior não estiver toda feita.</li>
+          <li>Dia apertado? <b>Mínimo: 1 revisão + 1 sessão nova</b> — 10 minutos. Zero dias não.</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+
   <!-- STATS -->
   <div class="pane" id="paneStats">
     <div class="plano">
@@ -234,6 +265,8 @@
   <nav class="nav">
     <button id="tabPlano" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/></svg>Plano</button>
+    <button id="tabMetodo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"/></svg>Método</button>
     <button id="tabTreino">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>Treino</button>
     <button id="tabStats">
@@ -287,15 +320,17 @@ function poolSessao(s) {
 }
 // ------- tabs -------
 function tab(nome) {
-  ['Treino','Plano','Stats','Charts'].forEach(n => {
+  ['Treino','Plano','Metodo','Stats','Charts'].forEach(n => {
     document.getElementById('tab' + n).classList.toggle('active', n === nome);
     document.getElementById('pane' + n).classList.toggle('active', n === nome);
   });
   if (nome === 'Plano') pintaPlano();
+  if (nome === 'Metodo') pintaMetodo();
   if (nome === 'Stats') pintaStats();
 }
 document.getElementById('tabTreino').addEventListener('click', () => tab('Treino'));
 document.getElementById('tabPlano').addEventListener('click', () => tab('Plano'));
+document.getElementById('tabMetodo').addEventListener('click', () => tab('Metodo'));
 document.getElementById('tabStats').addEventListener('click', () => tab('Stats'));
 document.getElementById('tabCharts').addEventListener('click', () => tab('Charts'));
 
@@ -464,19 +499,41 @@ function respondeu(idx) {
   const pct = alvoT ? Math.round(alvoC / alvoT * 100) : 0;
   document.getElementById('scorebar').textContent = 'Sessão: ' + alvoC + '/' + alvoT +
     (alvoT >= N_ALVO ? (pct >= ALVO_PCT ? ' · 🎉 alvo batido! Confirma em baixo ou no Plano.' : ' · alvo é 90% — tenta outra vez.') : ' · alvo 18/20 (90%)');
-  // confirmação da sessão: visível quando bateu o alvo das 20 perguntas
+  // confirmação: sessão nova que bateu o alvo, ou revisão que está a vencer
   const rec2 = estado()[sessaoAtiva] || rec;
   const bF = document.getElementById('btnFeita');
-  bF.style.display = (alvoT >= N_ALVO && pct >= ALVO_PCT && !rec2.feita) ? 'inline-block' : 'none';
+  const revisaoPendente = rec2.feita && rec2.dias && rec2.dias.feita && revsDevidas(rec2, hojeISO()).length > 0;
+  if (alvoT >= N_ALVO && pct >= ALVO_PCT && (!rec2.feita || revisaoPendente)) {
+    bF.style.display = 'inline-block';
+    bF.textContent = rec2.feita ? '✓ Revisão feita' : '✓ Sessão feita';
+  } else {
+    bF.style.display = 'none';
+  }
 }
 document.getElementById('btnFeita').addEventListener('click', () => {
   const st = estado();
   const rec = st[sessaoAtiva] || { certas: 0, total: 0, feita: false };
-  rec.feita = true; st[sessaoAtiva] = rec; guarda(st);
+  const hoje = hojeISO();
+  if (!rec.feita) {
+    // primeira vez: guarda o dia e agenda as 3 revisões (2, 7 e 21 dias)
+    rec.feita = true;
+    rec.dias = rec.dias || { feita: hoje };
+  } else if (rec.dias && rec.dias.feita) {
+    // já estava feita: esta confirmação conta como a revisão que estava a vencer
+    const pend = revsDevidas(rec, hoje);
+    if (pend.length) {
+      rec.dias['rev' + pend[0].passo] = hoje;
+      document.getElementById('scorebar').textContent =
+        'Revisão de ' + pend[0].passo + ' dias registada ✓ — volta em ' +
+        (PASSO_REV.find(p => p > pend[0].passo) || 21) + ' dias para a próxima.';
+    }
+  }
+  st[sessaoAtiva] = rec; guarda(st);
   document.getElementById('btnFeita').style.display = 'none';
-  document.getElementById('scorebar').textContent = 'Sessão marcada como feita ✓ — boa. A próxima espera no Plano.';
-  const s = TRILHO.find(x => x.id === sessaoAtiva);
-  if (s) { /* deixa a sessão ativa para rever; o Plano mostra ✓ */ }
+  const stt = document.getElementById('scorebar');
+  if (stt.textContent.indexOf('Revisão') !== 0) {
+    stt.textContent = 'Sessão marcada como feita ✓ — as revisões ficam agendadas. O plano de amanhã está no Método.';
+  }
 });
 // ------- stats -------
 function pctClasse(c, t) {
@@ -515,6 +572,110 @@ document.getElementById('btnResetStats').addEventListener('click', () => {
   const st = estado();
   delete st._g; delete st._pos; delete st._sit;
   guarda(st); pintaStats();
+});
+
+// ------- método: plano do dia (novas por ordem + revisões D+2, D+7, D+21) -------
+const NOVAS_POR_DIA = 4, REVS_POR_DIA = 2, PASSO_REV = [2, 7, 21];
+function hojeISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function maisDias(iso, n) {
+  const [a, m, d] = iso.split('-').map(Number);
+  const dt = new Date(a, m - 1, d + n);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+// revisões devidas hoje para uma sessão
+function revsDevidas(st, hoje) {
+  if (!st || !st.dias || !st.dias.feita) return [];
+  const out = [];
+  PASSO_REV.forEach((p, i) => {
+    const k = 'rev' + p;
+    if (!st.dias[k]) {
+      const vence = maisDias(st.dias.feita, p);
+      if (hoje >= vence) out.push({ passo: p, vence: vence });
+    }
+  });
+  return out;
+}
+function pintaMetodo() {
+  const st = estado();
+  const hoje = hojeISO();
+  // novas: por ordem do trilho, ainda não feitas (dá prioridade às começadas e não acabadas)
+  const naoFeitas = TRILHO.filter(s => !((st[s.id] || {}).feita));
+  const comecadas = naoFeitas.filter(s => (st[s.id] || {}).total > 0);
+  const porComecar = naoFeitas.filter(s => !(st[s.id] || {}).total);
+  const listaNovas = comecadas.concat(porComecar);
+  // revisões devidas
+  const revs = [];
+  TRILHO.forEach(s => {
+    const r = revsDevidas(st[s.id], hoje);
+    if (r.length) revs.push({ s: s, atraso: r[0].passo, desde: r[0].vence });
+  });
+  revs.sort((a, b) => (a.desde < b.desde ? -1 : 1));
+
+  const feitas = TRILHO.filter(s => (st[s.id] || {}).feita).length;
+  const restam = TRILHO.length - feitas;
+  document.getElementById('mNovas').textContent = Math.min(listaNovas.length, NOVAS_POR_DIA);
+  document.getElementById('mRevs').textContent = revs.length;
+  document.getElementById('mFeitas').textContent = feitas + '/65';
+  document.getElementById('mDias').textContent = restam ? Math.ceil(restam / NOVAS_POR_DIA) : '✓';
+
+  function linha(s, etiqueta, extra) {
+    const stS = st[s.id] || { certas: 0, total: 0 };
+    const pct = stS.total ? Math.round(stS.certas / stS.total * 100) : -1;
+    const row = document.createElement('div');
+    row.className = 'sessao';
+    row.innerHTML = '<div class="s-info"><div class="s-nome">' + s.nome + ' <span class="estado ' +
+      (pct >= ALVO_PCT ? 'e-feita' : stS.total ? 'e-incompleto' : 'e-por') + '">' + etiqueta + '</span></div>' +
+      '<div class="s-meta">' + 'etapa ' + s.etapa + ' · ' + s.banda + ' · ' +
+      (stS.total ? stS.certas + '/' + stS.total + ' (' + pct + '%)' : 'por começar') + (extra ? ' · ' + extra : '') + '</div></div>';
+    const b = document.createElement('button');
+    b.className = 's-go';
+    b.textContent = 'Treinar';
+    b.addEventListener('click', () => {
+      sessaoAtiva = s.id;
+      const e2 = estado(); e2._ativa = s.id; guarda(e2);
+      tab('Treino'); novaMao();
+    });
+    row.appendChild(b);
+    return row;
+  }
+
+  const dn = document.getElementById('mListaNovas');
+  dn.innerHTML = '';
+  if (!listaNovas.length) {
+    dn.innerHTML = '<div class="stat-row"><div class="stat-nome">Parabéns — as 65 sessões estão feitas. Agora é só revisão.</div></div>';
+  } else {
+    listaNovas.slice(0, NOVAS_POR_DIA).forEach(s => dn.appendChild(linha(s, 'Nova', 'a começar por aqui')));
+    if (listaNovas.length > NOVAS_POR_DIA) {
+      const mais = document.createElement('div');
+      mais.className = 'stat-row';
+      mais.innerHTML = '<div class="stat-nome">A seguir, quando acabares estas: ' + listaNovas.length + ' sessões por fazer</div>';
+      dn.appendChild(mais);
+    }
+  }
+
+  const dr = document.getElementById('mListaRevs');
+  dr.innerHTML = '';
+  if (!revs.length) {
+    dr.innerHTML = '<div class="stat-row"><div class="stat-nome">Nada a rever hoje. Segue para as novas.</div></div>';
+  } else {
+    revs.slice(0, REVS_POR_DIA).forEach(r => {
+      const dias = Math.round((new Date(hoje) - new Date(r.desde)) / 86400000);
+      dr.appendChild(linha(r.s, 'Rever', dias > 0 ? 'em atraso há ' + dias + ' dia' + (dias > 1 ? 's' : '') : 'vence hoje'));
+    });
+    if (revs.length > REVS_POR_DIA) {
+      const mais = document.createElement('div');
+      mais.className = 'stat-row';
+      mais.innerHTML = '<div class="stat-nome">Mais ' + (revs.length - REVS_POR_DIA) + ' revisões à espera — podes juntar ao de cima se tiveres tempo</div>';
+      dr.appendChild(mais);
+    }
+  }
+}
+document.getElementById('btnMetodoInfo').addEventListener('click', () => {
+  const d = document.getElementById('mDet');
+  d.open = !d.open;
 });
 document.getElementById('btnNext').addEventListener('click', novaMao);
 
