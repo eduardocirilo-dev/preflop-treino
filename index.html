@@ -130,6 +130,22 @@
   /* ---------- charts ---------- */
   select { background: #202020; color: #ddd; border: 1px solid #3a3a3a; border-radius: 8px;
            padding: 10px 12px; font-size: 0.85rem; width: 100%; max-width: 480px; display: block; margin: 0 auto 12px; }
+  .charts-topo { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+                max-width: 660px; margin: 0 auto 12px; }
+  .charts-topo select { flex: 1 1 320px; margin: 0; }
+  .visao { background: #1b1b1b; border: 1px solid #3a3a3a; color: #c9a84c; font-weight: bold;
+           font-size: 0.72rem; letter-spacing: 0.06em; padding: 11px 14px; border-radius: 10px; cursor: pointer; }
+  .visao:hover { border-color: #c9a84c; }
+  .visao.on { background: #c9a84c; border-color: #c9a84c; color: #161616; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 720px; margin: 0 auto 14px; }
+  .chip { background: #1b1b1b; border: 1px solid #2f3a4a; color: #cfd6e4; font-size: 0.76rem;
+          padding: 10px 13px; border-radius: 10px; cursor: pointer; }
+  .chip:hover { border-color: #4a5a72; }
+  .chip.on { background: #2e9e7b; border-color: #2e9e7b; color: #fff; font-weight: bold; }
+  .cB { background: #2e9e7b; color: #fff; }
+  .cY { background: #c9a84c; color: #161616; }
+  .cR { background: #b5452c; color: #fff; }
+  .cN { background: #262626; color: #5c6270; }
   .grid { display: grid; grid-template-columns: repeat(13, 36px); gap: 2px; width: max-content; margin: 0 auto; }
   .cell { width: 36px; height: 36px; border-radius: 3px; display: flex; align-items: center;
           justify-content: center; font-size: 0.58rem; font-weight: bold; cursor: pointer; }
@@ -208,7 +224,7 @@
 </head>
 <body>
   <h1>Treino Pré-flop · Spin &amp; Go Nitro</h1>
-  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v13</span></div>
+  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v14</span></div>
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
@@ -349,7 +365,11 @@
 
   <!-- CHARTS -->
   <div class="pane" id="paneCharts">
-    <select id="selSpot"></select>
+    <div class="charts-topo">
+      <select id="selSpot"></select>
+      <button id="btnVisao" class="visao">VISÃO GERAL</button>
+    </div>
+    <div class="chips" id="chips" style="display:none"></div>
     <div class="grid" id="grid"></div>
     <div class="info" id="info">A carregar…</div>
     <div class="leg" id="leg"></div>
@@ -368,7 +388,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>Stats</button>
   </nav>
 
-  <div class="carimbo" id="build">build 22/09/2026 04:45 · v13 · Metodo a esquerda do Plano, Stats a direita do Charts · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
+  <div class="carimbo" id="build">build 22/09/2026 05:05 · v14 · botao VISAO GERAL no Charts (5 spots) · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
 
 <script>
 'use strict';
@@ -1100,6 +1120,36 @@ dica.textContent = 'Teclado: 1 · 2 · 3 responde — espaço passa à próxima 
 document.getElementById('scorebar').parentNode.appendChild(dica);
 
 // ------- charts -------
+const CHARTS5 = [{"nome":"BTN abre","pct":52.1,"rows":["BBBBBBBBBBBBB","BBBBBBBBYYYYY","BBBBBBYYYYRRR","BBBBBBYYRNNNN","BYYYBBYYNNNNN","BYYYYBBYYNNNN","BYRRRNBYYNNNN","BYRNNNNBYNNNN","BRRNNNNNBYNNN","BRRNNNNNNBNNN","YRNNNNNNNNBNN","YRNNNNNNNNNBN","YRNNNNNNNNNNB"],"azul":24.3,"amarelo":16.6,"vermelho":11.2},{"nome":"SB vs BTN-fold","pct":77.7,"rows":["BBBBBBBBBBBBB","BBBBBBBBBBBBB","BBBBBBBBBBBYY","BBBBBBBBBYYYY","BBBBBBBBBYYRR","BBBBBBBBBYYRR","BBYYBBBBBBYNN","BBYYYYYBBBYNN","BBYRRRYYBBYNN","BYYRRRRNNBBNN","BYYRRNNNNNBNN","BYYRRNNNNNNBN","BYYRNNNNNNNNB"],"azul":45.4,"amarelo":20.2,"vermelho":12.1},{"nome":"SB vs BTN-dentro","pct":33.7,"rows":["BBBBBBBBBYYYY","BBBBBYYRRRRNN","BYBYYRRNNNNNN","BYYBRRRNNNNNN","BYRRBRNNNNNNN","BRRNNBNNNNNNN","YRNNNNBNNNNNN","YNNNNNNBNNNNN","YNNNNNNNBNNNN","YNNNNNNNNBNNN","RNNNNNNNNNYNN","RNNNNNNNNNNYN","RNNNNNNNNNNNY"],"azul":12.4,"amarelo":11.0,"vermelho":10.3},{"nome":"BB vs BTN-dentro","pct":59.0,"rows":["BBBBBBBBBBBBY","BBBBBYYYYYYYY","BBBYYYYYYYYYY","BYYBYYYYRRRRN","BYYYBYYYRRRNN","BYYYYBYYRRRNN","YYYRRRBRRRRNN","YYRNNRRBRRRNN","YYRNNNNNBRRNN","YYRNNNNNNBRNN","YYNNNNNNNNBNN","YRNNNNNNNNNYN","YRNNNNNNNNNNY"],"azul":14.6,"amarelo":29.3,"vermelho":15.1},{"nome":"BB vs SB-dentro","pct":77.2,"rows":["BBBBBBBBBBBBB","BBBBBBBBYYYYY","BBBBBBYYYYYYY","BBBBBYYYRRRRR","BBBYBYYYRRRRR","BBYYYBYYRRRRR","BYYYRRBRRRRRN","BYYYRRRBRRRNN","BYYRRRRRBRRNN","BYRRRRNNRBRNN","BYRRRNNNNNBNN","BYRRNNNNNNNBN","BYRRNNNNNNNNY"],"azul":28.4,"amarelo":21.0,"vermelho":27.8}];
+
+// ---- visão geral dos 5 spots (dados exatos de charts_data.json) ----
+let modoVisao = false, chartSel = 0;
+function estadoHand(code) {
+  if (code === 'B') return 'PUSH sempre';
+  if (code === 'Y') return 'PUSH só com menos de 12BB';
+  if (code === 'R') return 'PUSH só com menos de 6BB';
+  return 'FOLD (desiste)';
+}
+function corCelula(code) { return 'c' + (code === 'B' || code === 'Y' || code === 'R' ? code : 'N'); }
+function legendaVisao() {
+  return '<span><i class="dot" style="background:#2e9e7b"></i> Push sempre</span>' +
+         '<span><i class="dot" style="background:#c9a84c"></i> Push só com <12BB</span>' +
+         '<span><i class="dot" style="background:#b5452c"></i> Push só com <6BB</span>' +
+         '<span><i class="dot" style="background:#262626;border:1px solid #555"></i> Fold</span>';
+}
+function pintaChart(i) {
+  chartSel = i;
+  const c = CHARTS5[i];
+  [...document.querySelectorAll('#chips .chip')].forEach((ch, k) => ch.classList.toggle('on', k === i));
+  for (const hand in cells) {
+    const el = cells[hand];
+    const code = c.rows[Number(el.dataset.i)][Number(el.dataset.j)];
+    el.className = 'cell ' + corCelula(code);
+    el.dataset.estado = code;
+  }
+  document.getElementById('leg').innerHTML = legendaVisao();
+  infoEl.innerHTML = '<b>' + c.nome + '</b> · empurra ' + c.pct + '% das mãos — toca numa mão para ver o que fazer';
+}
 const grid = document.getElementById('grid');
 const infoEl = document.getElementById('info');
 const cells = {};
@@ -1109,11 +1159,20 @@ for (let i = 0; i < 13; i++) for (let j = 0; j < 13; j++) {
   const div = document.createElement('div');
   div.className = 'cell aN';
   div.textContent = hand;
-  div.addEventListener('mouseenter', () => {
+  div.dataset.i = String(i); div.dataset.j = String(j);
+  const detalhe = () => {
+    if (modoVisao) {
+      const c = CHARTS5[chartSel];
+      const code = c.rows[i][j];
+      infoEl.innerHTML = '<b>' + hand + '</b> — ' + c.nome + ': <b>' + estadoHand(code) + '</b>';
+      return;
+    }
     if (!spotSel) return;
     const a = accaoDe(spotSel, hand);
     infoEl.innerHTML = '<b>' + hand + '</b> — ' + spotSel.ctx + ' · ' + spotSel.stack + 'bb: <b>' + (a ? rot(a) : '—') + '</b>';
-  });
+  };
+  div.addEventListener('mouseenter', detalhe);
+  div.addEventListener('click', detalhe);
   cells[hand] = div;
   grid.appendChild(div);
 }
@@ -1145,7 +1204,26 @@ POSD.forEach((e, i) => {
   g.appendChild(o);
 });
 sel.appendChild(g);
-sel.addEventListener('change', () => pintaSpot(POSD[Number(sel.value)]));
+sel.addEventListener('change', () => { if (!modoVisao) pintaSpot(POSD[Number(sel.value)]); });
+
+// botão VISÃO GERAL: os 5 spots numa lista
+const chipsEl = document.getElementById('chips');
+CHARTS5.forEach((c, i) => {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = c.nome + ' (' + c.pct + '%)';
+  b.addEventListener('click', () => pintaChart(i));
+  chipsEl.appendChild(b);
+});
+const btnVisao = document.getElementById('btnVisao');
+btnVisao.addEventListener('click', () => {
+  modoVisao = !modoVisao;
+  btnVisao.classList.toggle('on', modoVisao);
+  sel.style.display = modoVisao ? 'none' : '';
+  chipsEl.style.display = modoVisao ? 'flex' : 'none';
+  if (modoVisao) pintaChart(chartSel);
+  else pintaSpot(POSD[Number(sel.value)] || POSD[0]);
+});
 sel.value = '0';
 pintaSpot(POSD[0]);   // pintar logo o primeiro spot — a grelha nunca abre toda cinzenta
 
