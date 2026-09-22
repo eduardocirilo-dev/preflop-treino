@@ -65,6 +65,13 @@
   .feedback { max-width: 480px; margin: 12px auto 0; text-align: center; font-size: 0.88rem; min-height: 3.2em; line-height: 1.45; }
   .feedback.ok { color: #4caf50; } .feedback.bad { color: #e05555; }
   .feedback .det { color: #8a8a8a; font-size: 0.75rem; }
+  .porque { max-width: 480px; margin: 10px auto 0; background: #1e1e1e; border-left: 3px solid #b57e2c;
+            border-radius: 6px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.5; color: #c8c8c8; display: none; }
+  .porque b { color: #c9a84c; }
+  .ideias { max-width: 480px; margin: 12px auto 0; background: #1b1b1b; border: 1px solid #2e2e2e;
+            border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; line-height: 1.55; color: #a8a8a8; }
+  .ideias summary { cursor: pointer; color: #a8e6a3; font-weight: 600; font-size: 0.8rem; }
+  .ideias ol { margin: 8px 0 0 18px; } .ideias li { margin-bottom: 5px; }
   .next-row { text-align: center; margin-top: 4px; }
   .next-btn { padding: 12px 34px; background: #a8e6a3; color: #161616; font-weight: 700;
               border: none; border-radius: 8px; cursor: pointer; font-size: 0.92rem; display: none; }
@@ -150,6 +157,19 @@
     </div>
     <div class="actions" id="acoes"></div>
     <div class="feedback" id="feedback"></div>
+    <div class="porque" id="porque"></div>
+    <details class="ideias">
+      <summary>As 3 ideias deste treino (abre quando quiseres)</summary>
+      <ol>
+        <li><b>Quanto mais curto o stack, mais empurras.</b> Com poucas fichas não há tempo para esperar
+          por uma mão bonita — perdes as fichas nas blinds. Com muitas fichas podes escolher.</li>
+        <li><b>Ser o primeiro a falar é uma vantagem.</b> Se ninguém entrar na mão, o pote é teu sem
+          mostrares cartas. Por isso, quando és o primeiro, empurras muito mais mãos do que parece.</li>
+        <li><b>Quem paga precisa de ganhar muitas vezes.</b> Se alguém empurra tudo, para pagar tem de
+          ganhar quase metade das vezes. É por isso que só se paga com mãos fortes — e que empurrar
+          funciona tão bem.</li>
+      </ol>
+    </details>
     <div class="next-row"><button class="next-btn" id="btnNext">Próxima →</button></div>
     <div class="scorebar" id="scorebar"></div>
     <div style="text-align:center"><button class="feita-btn" id="btnFeita">✓ Sessão feita</button></div>
@@ -378,6 +398,8 @@ function novaMao() {
   botoes(dE);
   const fb = document.getElementById('feedback');
   fb.textContent = ''; fb.className = 'feedback';
+  const pq = document.getElementById('porque');
+  pq.textContent = ''; pq.style.display = 'none';
   document.getElementById('btnNext').style.display = 'none';
 }
 function respondeu(idx) {
@@ -415,6 +437,10 @@ function respondeu(idx) {
   }
   fb.innerHTML = (ok ? '✅ Certo! ' : '❌ Errado. ') +
     'Resposta: <b>' + rot(certa) + '</b><br><span class="det">' + det + '</span>';
+  // explicação pedagógica simples
+  const pq = document.getElementById('porque');
+  pq.innerHTML = porqueTexto(dE, dHand, certa);
+  pq.style.display = 'block';
   document.getElementById('btnNext').style.display = 'inline-block';
   document.querySelectorAll('#acoes button').forEach(b => b.disabled = true);
   const pct = alvoT ? Math.round(alvoC / alvoT * 100) : 0;
@@ -473,6 +499,51 @@ document.getElementById('btnResetStats').addEventListener('click', () => {
   guarda(st); pintaStats();
 });
 document.getElementById('btnNext').addEventListener('click', novaMao);
+
+// ------- pedagogia: porquê simples, para gravar -------
+function familia(hand) {
+  const suf = hand.slice(-1), a = hand[0], b = hand[1];
+  const RV = h => 12 - RANKS.indexOf(h);
+  if (a === b) return { t: 'Par de ' + (a === 'T' ? '10' : a) + (a === 'T' ? '' : 's'), d: 'Duas cartas iguais já são uma mão feita. Vale mais do que parece — por isso os pares pequenos entram sempre.' };
+  if (a === 'A') return { t: suf === 's' ? 'Ás do mesmo naipe' : 'Ás', d: 'O ás é a carta mais alta do baralho: ganha sozinho muitas vezes, mesmo sem ajuda.' };
+  if (a === 'K' && suf === 's') return { t: 'Rei do mesmo naipe', d: 'O rei só perde para o ás. Com naipe igual ainda pode fazer cor.' };
+  const gap = RV(a) - RV(b);
+  if (suf === 's' && gap <= 2 && RV(a) <= 9) return { t: 'Cartas seguidas do mesmo naipe', d: 'Podem fazer escada e cor — muito boas para empurrar quando tens poucas fichas.' };
+  if (suf === 's') return { t: 'Do mesmo naipe', d: 'O naipe igual dá uma hipótese extra de cor. Sempre vale um pouco mais que as cartas de naipes diferentes.' };
+  if (RV(b) <= 4 || RV(a) <= 5) return { t: 'Cartas baixas desligadas', d: 'Baixas, sem naipe igual e sem ligação: mesmo empurrando, perdes muitas vezes. Só entram quando tens mesmo poucas fichas.' };
+  return { t: 'Cartas altas desligadas', d: 'Cartas altas sem ligação: ganham se sair uma delas — é por isso que se empurram quando tens poucas fichas.' };
+}
+function porqueTexto(e, hand, acao) {
+  const sit = e.sit || '', s = e.stack;
+  const a = (acao || '').toLowerCase();
+  let l1;
+  if (sit === 'abre') {
+    l1 = a.includes('shove') || a.includes('empurra')
+      ? 'És o primeiro a falar e tens poucas fichas: aproveitas para empurrar. Se os outros desistirem, ganhas o pote sem mostrares cartas.'
+      : (a === 'fold'
+        ? 'És o primeiro a falar, mas esta mão não aguenta ser aposta. Esperas por uma melhor — o custo de esperar é baixo nesta altura.'
+        : 'Tens fichas a mais para empurrar às cegas: sobes pequeno para jogar a mão com margem, sem arriscar tudo.');
+  } else if (sit === 'vs_shove_btn' || sit === 'vs_shove_sb') {
+    const aut = sit === 'vs_shove_btn' ? 'botão' : 'small blind';
+    l1 = a.includes('call') || a.includes('paga')
+      ? 'O ' + aut + ' empurrou tudo e a tua mão é forte o suficiente para pagar: aqui ganhas dinheiro, não o perdes.'
+      : 'O ' + aut + ' empurrou tudo. Para pagar tens de ganhar quase metade das vezes — com esta mão não chega, por isso desistes.';
+  } else if (sit === 'vs_limp') {
+    l1 = 'Ele entrou só por igualar, sem subir. Isso é sinal fraco: a mão dele não é assim tão boa. ' +
+         (a.includes('sub') || a.includes('sobe') || a.includes('raise') ? 'Sobes para o castigar e ficar com a iniciativa.' :
+          a.includes('empurra') || a.includes('shove') ? 'Empurras tudo para ele não ver o flop barato.' : 'Aqui preferes ver de graça.');
+  } else if (sit.indexOf('minraise') >= 0 || sit.indexOf('2mr') >= 0) {
+    l1 = 'Ele subiu pequeno, não empurrou. Subida pequena costuma ser mão média — ' +
+         (a === 'fold' ? 'com esta mão desistes e guardas fichas.' : 'por isso aqui consegues entrar.');
+  } else if (sit.indexOf('open3x') >= 0) {
+    l1 = 'Ele subiu grande (3x), o que mostra força. ' + (a === 'fold' ? 'Só entras com mãos boas — esta não chega.' : 'Esta mão é das que aguentam.');
+  } else {
+    l1 = 'Lê o spot: quanto mais forte a jogada dele, mais forte tem de ser a tua mão.';
+  }
+  const fam = familia(hand);
+  const l2 = 'Mão: ' + fam.t + ' — ' + fam.d;
+  return '<b>Porquê (para gravar)</b><br>' + l1 + '<br>' + l2;
+}
 
 // ------- teclado (como no treino-quintas): 1..n responde · espaço/enter avança -------
 document.addEventListener('keydown', (ev) => {
