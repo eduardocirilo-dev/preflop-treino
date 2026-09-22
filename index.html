@@ -169,6 +169,17 @@
           ganhar quase metade das vezes. É por isso que só se paga com mãos fortes — e que empurrar
           funciona tão bem.</li>
       </ol>
+      <div class="etapa-tit" style="margin:12px 0 6px">As palavras do site (em inglês)</div>
+      <ul style="margin-left:18px">
+        <li><b>PUSH / ALL-IN</b> — empurrar todas as fichas</li>
+        <li><b>FOLD</b> — desistir da mão</li>
+        <li><b>CALL</b> — pagar o que está apostado</li>
+        <li><b>RAISE</b> — subir a aposta</li>
+        <li><b>MIN-RAISE</b> — subir só um bocadinho</li>
+        <li><b>CHECK</b> — passar, sem pôr fichas</li>
+        <li><b>LIMP</b> — entrar só igualando, sem subir</li>
+        <li><b>BTN / SB / BB</b> — os três lugares na mesa</li>
+      </ul>
     </details>
     <div class="next-row"><button class="next-btn" id="btnNext">Próxima →</button></div>
     <div class="scorebar" id="scorebar"></div>
@@ -240,10 +251,16 @@ const POSD = D.POSD, TRILHO = D.TRILHO;
 const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 const SUITS = { h:'♥', d:'♦', c:'♣', s:'♠' };
 const N_ALVO = 20, ALVO_PCT = 90;
-const ROT = { 'Shove':'EMPURRA TUDO', 'Fold':'DESISTE', 'Limp':'LIMPA (iguala)', 'Limp/call':'LIMPA · paga 3-bet',
-  'Limp/fold':'LIMPA · desiste a agressão', 'Min-raise':'SOBE pequeno', 'Min-raise/all-in':'SOBE · paga all-in',
-  'Min-raise/fold':'SOBE · desiste a agressão', 'Call':'PAGA', 'Check':'CHECK', 'Raise':'SOBE', 'Raise (iso)':'SOBE (iso)' };
+const ROT = { 'Shove':'PUSH', 'Fold':'FOLD', 'Limp':'LIMP', 'Limp/call':'LIMP / CALL',
+  'Limp/fold':'LIMP / FOLD', 'Min-raise':'MIN-RAISE', 'Min-raise/all-in':'MIN-RAISE / ALL-IN',
+  'Min-raise/fold':'MIN-RAISE / FOLD', 'Call':'CALL', 'Check':'CHECK', 'Raise':'RAISE', 'Raise (iso)':'RAISE (ISO)' };
+// tradução curta para o português do dia a dia (aparece depois da resposta)
+const PT = { 'PUSH':'empurrar tudo', 'FOLD':'desistir', 'LIMP':'entrar só igualando', 'LIMP / CALL':'entrar igualando e pagar a subida',
+  'LIMP / FOLD':'entrar igualando e desistir se subirem', 'MIN-RAISE':'subir pequeno', 'MIN-RAISE / ALL-IN':'subir pequeno e pagar o all-in',
+  'MIN-RAISE / FOLD':'subir pequeno e desistir se vier all-in', 'CALL':'pagar', 'CHECK':'passar (ver o flop de graça)',
+  'RAISE':'subir', 'RAISE (ISO)':'subir para isolar' };
 function rot(a) { return ROT[a] || a; }
+function pt(a) { return PT[ROT[a]] || ''; }
 
 // ------- índice -------
 const RANK_IDX = {}; RANKS.forEach((r, i) => RANK_IDX[r] = i);
@@ -436,7 +453,8 @@ function respondeu(idx) {
     det += ' · para pagar precisas de ' + eq + '% de equidade';
   }
   fb.innerHTML = (ok ? '✅ Certo! ' : '❌ Errado. ') +
-    'Resposta: <b>' + rot(certa) + '</b><br><span class="det">' + det + '</span>';
+    'Resposta: <b>' + rot(certa) + '</b>' + (pt(certa) ? ' <span class="det">= ' + pt(certa) + '</span>' : '') +
+    '<br><span class="det">' + det + '</span>';
   // explicação pedagógica simples
   const pq = document.getElementById('porque');
   pq.innerHTML = porqueTexto(dE, dHand, certa);
@@ -542,7 +560,8 @@ function porqueTexto(e, hand, acao) {
   }
   const fam = familia(hand);
   const l2 = 'Mão: ' + fam.t + ' — ' + fam.d;
-  return '<b>Porquê (para gravar)</b><br>' + l1 + '<br>' + l2;
+  return '<b>Porquê (para gravar)</b><br><b>' + rot(acao) + '</b>' +
+    (pt(acao) ? ' <span class="det">= ' + pt(acao) + '</span>' : '') + '<br>' + l1 + '<br>' + l2;
 }
 
 // ------- teclado (como no treino-quintas): 1..n responde · espaço/enter avança -------
