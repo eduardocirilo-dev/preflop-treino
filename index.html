@@ -180,27 +180,23 @@
     .table-wrap { height: 560px; }
     .actions button { padding: 20px; font-size: 1.1rem; }
     .feedback { font-size: 1.05rem; }
-    /* Plano e Método: listas em duas colunas, para aproveitar a largura */
-    .plano { max-width: 1100px; }
-    #planoLista { column-count: 2; column-gap: 20px; }
-    #planoLista .sessao { break-inside: avoid; }
-    #mListaNovas, #mListaRevs { column-count: 2; column-gap: 20px; }
-    #mListaNovas .sessao, #mListaRevs .sessao, #mListaNovas .stat-row, #mListaRevs .stat-row { break-inside: avoid; }
+    /* Plano e Método: uma só coluna, como no telemóvel (ele prefere assim) */
+    .plano { max-width: 660px; }
     .kpi { padding: 16px 10px; }
     .kpi-n { font-size: 1.7rem; }
     .leg { font-size: 0.9rem; }
     .nav { padding-left: max(0px, calc(50% - 380px)); padding-right: max(0px, calc(50% - 380px)); }
   }
 
-  /* ecrãs muito largos: listas ainda mais folgadas */
+  /* ecrãs muito largos: mantém a largura de leitura confortável */
   @media (min-width: 1400px) {
-    .plano { max-width: 1240px; }
+    .plano { max-width: 720px; }
   }
 </style>
 </head>
 <body>
   <h1>Treino Pré-flop · Spin &amp; Go Nitro</h1>
-  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v8</span></div>
+  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v9</span></div>
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
@@ -343,7 +339,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Charts</button>
   </nav>
 
-  <div class="carimbo" id="build">build 22/09/2026 02:52 · v8 · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
+  <div class="carimbo" id="build">build 22/09/2026 03:05 · v9 · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
 
 <script>
 'use strict';
