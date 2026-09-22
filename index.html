@@ -208,7 +208,7 @@
 </head>
 <body>
   <h1>Treino Pré-flop · Spin &amp; Go Nitro</h1>
-  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v11</span></div>
+  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v12</span></div>
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
@@ -368,7 +368,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Charts</button>
   </nav>
 
-  <div class="carimbo" id="build">build 22/09/2026 04:10 · v11 · anular sessão + marcar feita só com 20 perguntas · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
+  <div class="carimbo" id="build">build 22/09/2026 04:30 · v12 · o iPad deixa de se chamar Mac · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
 
 <script>
 'use strict';
@@ -442,18 +442,22 @@ function syncURL() {
 }
 function nomeAparelho() {
   const ua = (navigator.userAgent || '');
-  if (/iPad/.test(ua)) return 'iPad';
+  const dedos = navigator.maxTouchPoints || 0;
   if (/iPhone/.test(ua)) return 'iPhone';
-  if (/Macintosh/.test(ua)) return 'Mac';
+  if (/iPad/.test(ua)) return 'iPad';
   if (/Android/.test(ua)) return 'Android';
+  // o Safari do iPad esconde-se: diz que é «Macintosh». Se tem toque múltiplo, é tablet.
+  if (/Macintosh|Mac OS X/.test(ua)) return dedos > 1 ? 'iPad' : 'Mac';
+  if (dedos > 1) return 'Tablet';
   return 'Outro';
 }
 function idAparelho() {
   const st = estado();
+  if (st._dev && st._nome !== nomeAparelho()) { st._nome = nomeAparelho(); guarda(st); }
   if (!st._dev) {
     const base = nomeAparelho().toLowerCase().replace(/[^a-z]/g, '') || 'dev';
     st._dev = base + '-' + Math.random().toString(36).slice(2, 8);
-    st._nome = st._nome || nomeAparelho();
+    st._nome = nomeAparelho();
     guarda(st);
   }
   return st._dev;
