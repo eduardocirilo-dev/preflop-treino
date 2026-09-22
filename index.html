@@ -68,6 +68,15 @@
   .porque { max-width: 480px; margin: 10px auto 0; background: #1e1e1e; border-left: 3px solid #b57e2c;
             border-radius: 6px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.5; color: #c8c8c8; display: none; }
   .porque b { color: #c9a84c; }
+  .syncbox { background: #1b1b1b; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px 14px; }
+  .sync-linha { font-size: 0.82rem; color: #b5b5b5; margin-bottom: 8px; line-height: 1.45; }
+  .sync-apar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .sync-chip { font-size: 0.72rem; padding: 4px 10px; border-radius: 999px; background: #26302a; color: #7fd18a; border: 1px solid #2f4436; }
+  .sync-chip.fora { background: #262626; color: #8a8a8a; border-color: #333; }
+  .sync-input { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 10px; background: #141414; color: #eaeaea; border: 1px solid #333; font-size: 0.9rem; margin-bottom: 8px; }
+  .sync-aviso { font-size: 0.74rem; color: #7d7d7d; margin-top: 4px; }
+  .sync-aviso.erro { color: #e05555; }
+  .sync-aviso.ok { color: #4caf50; }
   .ideias { max-width: 480px; margin: 12px auto 0; background: #1b1b1b; border: 1px solid #2e2e2e;
             border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; line-height: 1.55; color: #a8a8a8; }
   .ideias summary { cursor: pointer; color: #a8e6a3; font-weight: 600; font-size: 0.8rem; }
@@ -196,7 +205,7 @@
 </head>
 <body>
   <h1>Treino Pré-flop · Spin &amp; Go Nitro</h1>
-  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v9</span></div>
+  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v10</span></div>
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
@@ -294,6 +303,22 @@
           <li>Dia apertado? <b>Mínimo: 1 revisão + 1 sessão nova</b> — 10 minutos. Zero dias não.</li>
         </ul>
       </details>
+
+      <div class="etapa-tit">3 · Os teus aparelhos</div>
+      <div class="syncbox" id="syncbox">
+        <div id="syncEstado" class="sync-linha">A verificar…</div>
+        <div id="syncAparelhos" class="sync-apar"></div>
+        <div id="syncLigar" style="display:none">
+          <div class="sync-linha">Cola aqui o teu <b>código de sincronização</b> (recebeste-o no chat). Só se escreve uma vez em cada aparelho.</div>
+          <input id="syncChave" class="sync-input" placeholder="código" autocapitalize="off" autocomplete="off" spellcheck="false">
+          <button class="s-go" id="btnSyncLigar">Ligar</button>
+        </div>
+        <div id="syncLigado" style="display:none">
+          <button class="s-go" id="btnSyncAgora">Sincronizar agora</button>
+          <button class="reset" id="btnSyncDesligar">Desligar neste aparelho</button>
+        </div>
+        <div id="syncAviso" class="sync-aviso"></div>
+      </div>
     </div>
   </div>
 
@@ -311,6 +336,7 @@
         <div class="kpi"><div class="kpi-n" id="kBest">—</div><div class="kpi-l">melhor seq.</div></div>
         <div class="kpi"><div class="kpi-n" id="kSess">—</div><div class="kpi-l">sessões feitas</div></div>
       </div>
+      <div id="statsAparelhos"></div>
       <div class="etapa-tit">Por posição (alvo 90%)</div>
       <div id="statsPos"></div>
       <div class="etapa-tit">Por situação</div>
@@ -339,7 +365,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Charts</button>
   </nav>
 
-  <div class="carimbo" id="build">build 22/09/2026 03:05 · v9 · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
+  <div class="carimbo" id="build">build 22/09/2026 03:20 · v10 · sincronização entre aparelhos · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
 
 <script>
 'use strict';
@@ -403,6 +429,209 @@ const LS = 'nitro_mesa_';
 function estado() { try { return JSON.parse(localStorage.getItem(LS + 'trilho')) || {}; } catch (e) { return {}; } }
 function guarda(e) { try { localStorage.setItem(LS + 'trilho', JSON.stringify(e)); } catch (err) {} }
 
+// ================= SINCRONIZAÇÃO ENTRE APARELHOS =================
+// O progresso vive no localStorage de cada aparelho. Cada aparelho tem um id próprio e envia
+// o seu documento para o servidor; ao sincronizar, junta o que os outros fizeram (nunca apaga).
+const SYNC_PADRAO = 'https://nitro-sync.onrender.com';   // servidor (pode ser trocado no código)
+function syncURL() {
+  const st = estado();
+  return (st._url || SYNC_PADRAO).replace(/\/+$/, '');
+}
+function nomeAparelho() {
+  const ua = (navigator.userAgent || '');
+  if (/iPad/.test(ua)) return 'iPad';
+  if (/iPhone/.test(ua)) return 'iPhone';
+  if (/Macintosh/.test(ua)) return 'Mac';
+  if (/Android/.test(ua)) return 'Android';
+  return 'Outro';
+}
+function idAparelho() {
+  const st = estado();
+  if (!st._dev) {
+    const base = nomeAparelho().toLowerCase().replace(/[^a-z]/g, '') || 'dev';
+    st._dev = base + '-' + Math.random().toString(36).slice(2, 8);
+    st._nome = st._nome || nomeAparelho();
+    guarda(st);
+  }
+  return st._dev;
+}
+// ---- leitura do progresso a contar com TODOS os aparelhos ----
+function registosSessao(st, id) {
+  const out = [];
+  if (st[id] && (st[id].total || st[id].feita)) out.push(st[id]);
+  Object.keys(st._outros || {}).forEach(d => {
+    const r = (st._outros[d].sessoes || {})[id];
+    if (r && (r.total || r.feita)) out.push(r);
+  });
+  return out;
+}
+function feitaGlobal(st, id) { return registosSessao(st, id).some(r => r.feita); }
+function diasGlobal(st, id) {
+  const out = {};
+  registosSessao(st, id).forEach(r => {
+    const d = r.dias || {};
+    Object.keys(d).forEach(k => {
+      if (!d[k]) return;
+      if (k === 'feita') { if (!out.feita || d[k] < out.feita) out.feita = d[k]; }
+      else if (!out[k] || d[k] < out[k]) out[k] = d[k];
+    });
+  });
+  return out;
+}
+function somaSessao(st, id) {
+  const rs = registosSessao(st, id);
+  const certas = rs.reduce((a, r) => a + (r.certas || 0), 0);
+  const total = rs.reduce((a, r) => a + (r.total || 0), 0);
+  return { certas: certas, total: total, pct: total ? Math.round(certas / total * 100) : -1 };
+}
+function aparelhosLigados(st) {
+  const nomes = [st._nome || nomeAparelho()];
+  Object.keys(st._outros || {}).forEach(d => {
+    const n = st._outros[d].nome || 'aparelho';
+    if (nomes.indexOf(n) < 0) nomes.push(n);
+  });
+  return nomes;
+}
+function statsJuntos(st) {
+  const g = st._g || { certas: 0, total: 0, streak: 0, best: 0 };
+  const out = { certas: g.certas || 0, total: g.total || 0, streak: g.streak || 0, best: g.best || 0 };
+  const pos = {}, sit = {};
+  const junta = (dest, orig) => Object.keys(orig || {}).forEach(k => {
+    dest[k] = dest[k] || { certas: 0, total: 0 };
+    dest[k].certas += orig[k].certas || 0; dest[k].total += orig[k].total || 0;
+  });
+  junta(pos, st._pos); junta(sit, st._sit);
+  Object.keys(st._outros || {}).forEach(d => {
+    const o = st._outros[d] || {};
+    if (o.g) { out.certas += o.g.certas || 0; out.total += o.g.total || 0; out.best = Math.max(out.best, o.g.best || 0); }
+    junta(pos, o.pos); junta(sit, o.sit);
+  });
+  return { g: out, pos: pos, sit: sit };
+}
+// ---- envio/receção ----
+async function sincroniza() {
+  const st = estado();
+  if (!st._chave) return { ok: false, motivo: 'desligado' };
+  const base = syncURL() + '/estado/' + encodeURIComponent(st._chave);
+  let remoto = {};
+  try {
+    const r = await fetch(base, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    remoto = await r.json();
+  } catch (e) {
+    return { ok: false, motivo: 'sem-ligacao' };
+  }
+  const st2 = estado();                       // reler: pode ter mudado enquanto esperávamos
+  st2._outros = st2._outros || {};
+  let novos = 0;
+  Object.keys(remoto).forEach(dev => {
+    if (dev === st2._dev) return;
+    const doc = remoto[dev] || {};
+    const antes = st2._outros[dev] || {};
+    st2._outros[dev] = {
+      nome: doc.nome || antes.nome || 'aparelho',
+      at: doc.at || 0,
+      g: (doc.stats && doc.stats.g) || (doc.stats && doc.stats) || null,
+      pos: (doc.stats && doc.stats.pos) || null,
+      sit: (doc.stats && doc.stats.sit) || null,
+      sessoes: doc.sessoes || {}
+    };
+    // contas: alguma sessão que aqui não estava feita?
+    Object.keys(doc.sessoes || {}).forEach(id => {
+      if ((doc.sessoes[id] || {}).feita && !(antes.sessoes || {})[id]) novos++;
+    });
+  });
+  st2._sinc = Date.now();
+  guarda(st2);
+  const meu = {
+    nome: st2._nome || nomeAparelho(),
+    at: Date.now(),
+    sessoes: (function () {
+      const o = {};
+      TRILHO.forEach(s => { const r = st2[s.id]; if (r && (r.total || r.feita)) o[s.id] = r; });
+      return o;
+    })(),
+    stats: { g: st2._g || { certas: 0, total: 0, streak: 0, best: 0 }, pos: st2._pos || {}, sit: st2._sit || {} }
+  };
+  try {
+    const r2 = await fetch(base + '/' + encodeURIComponent(st2._dev), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(meu)
+    });
+    if (!r2.ok) throw new Error('HTTP ' + r2.status);
+  } catch (e) {
+    return { ok: false, motivo: 'envio' };
+  }
+  return { ok: true, novos: novos, aparelhos: aparelhosLigados(st2) };
+}
+let syncTimer = null;
+function sincronizaDepois(ms) {
+  const st = estado();
+  if (!st._chave) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { sincroniza().then(r => { if (r.ok) { pintaSync(); pintaMetodo(); pintaPlano(); pintaStats(); } }); }, ms || 6000);
+}
+function pintaSync() {
+  const st = estado();
+  const ligado = !!st._chave;
+  const box = document.getElementById('syncEstado');
+  if (!box) return;
+  document.getElementById('syncLigar').style.display = ligado ? 'none' : 'block';
+  document.getElementById('syncLigado').style.display = ligado ? 'block' : 'none';
+  const ap = document.getElementById('syncAparelhos');
+  ap.innerHTML = '';
+  if (ligado) {
+    const quando = st._sinc ? (function () {
+      const m = Math.round((Date.now() - st._sinc) / 60000);
+      if (m < 1) return 'agora mesmo';
+      if (m === 1) return 'há 1 minuto';
+      if (m < 60) return 'há ' + m + ' minutos';
+      const h = Math.round(m / 60);
+      return h === 1 ? 'há 1 hora' : 'há ' + h + ' horas';
+    })() : 'por estrear';
+    box.innerHTML = '✅ <b>Ligado</b> · última sincronização ' + quando;
+    aparelhosLigados(st).forEach(n => {
+      const c = document.createElement('span');
+      c.className = 'sync-chip' + (n === (st._nome || nomeAparelho()) ? '' : '');
+      c.textContent = n;
+      ap.appendChild(c);
+    });
+  } else {
+    box.innerHTML = 'Falta ligar. Com isto, o que fizeres no iPhone aparece no iPad e no Mac (e ao contrário).';
+  }
+}
+function avisoSync(txt, tipo) {
+  const el = document.getElementById('syncAviso');
+  if (!el) return;
+  el.textContent = txt || '';
+  el.className = 'sync-aviso' + (tipo ? ' ' + tipo : '');
+}
+document.getElementById('btnSyncLigar').addEventListener('click', () => {
+  const v = (document.getElementById('syncChave').value || '').trim().toLowerCase();
+  if (!/^[a-z0-9-]{6,64}$/.test(v)) { avisoSync('Esse código não parece válido — copia outra vez.', 'erro'); return; }
+  const st = estado();
+  st._chave = v; idAparelho(); guarda(st);
+  avisoSync('A ligar…');
+  sincroniza().then(r => {
+    if (r.ok) { avisoSync('Ligado. Já tens aqui o progresso dos teus aparelhos.', 'ok'); pintaSync(); pintaMetodo(); pintaPlano(); pintaStats(); }
+    else avisoSync('Guardei o código, mas agora não consigo falar com o servidor. Tento outra vez sozinho mais logo.', 'erro');
+  });
+});
+document.getElementById('btnSyncDesligar').addEventListener('click', () => {
+  const st = estado();
+  delete st._chave; delete st._outros; delete st._sinc;
+  guarda(st); avisoSync('Desligado neste aparelho. O progresso local fica como está.', '');
+  document.getElementById('syncChave').value = '';
+  pintaSync();
+});
+document.getElementById('btnSyncAgora').addEventListener('click', () => {
+  avisoSync('A sincronizar…');
+  sincroniza().then(r => {
+    if (r.ok) avisoSync('Feito. ' + (r.novos ? r.novos + ' sessões novas de outros aparelhos.' : 'Já estava tudo junto.'), 'ok');
+    else avisoSync(r.motivo === 'sem-ligacao' ? 'Sem ligação ao servidor. Tento outra vez quando voltares a abrir.' : 'Não consegui sincronizar.', 'erro');
+    pintaSync(); pintaMetodo(); pintaPlano(); pintaStats();
+  });
+});
+
 // ------- plano -------
 function pintaPlano() {
   const e = estado();
@@ -417,21 +646,24 @@ function pintaPlano() {
       t.textContent = 'Etapa ' + s.etapa + ' — ' + s.etapa_nome;
       div.appendChild(t);
     }
-    const st = e[s.id] || { certas: 0, total: 0, feita: false };
-    const pct = st.total ? Math.round(st.certas / st.total * 100) : -1;
+    const stM = somaSessao(e, s.id);
+    const stF = feitaGlobal(e, s.id);
+    const st = { certas: stM.certas, total: stM.total, feita: stF };
+    const stLocal = e[s.id] || { certas: 0, total: 0, feita: false };
+    const pct = stM.pct;
     const row = document.createElement('div');
-    row.className = 'sessao' + (st.feita ? ' feita' : '');
-    // estado: só é FEITA quando foi confirmada com ≥90% de acerto
+    row.className = 'sessao' + (stF ? ' feita' : '');
+    // estado: só é FEITA quando foi confirmada com ≥90% de acerto (em qualquer aparelho)
     let estadoTxt, estadoCls, realizacao;
-    if (st.feita) { estadoTxt = 'Feita'; estadoCls = 'e-feita'; }
+    if (stF) { estadoTxt = 'Feita'; estadoCls = 'e-feita'; }
     else if (st.total > 0) { estadoTxt = 'Incompleto'; estadoCls = 'e-incompleto'; }
     else { estadoTxt = 'Por começar'; estadoCls = 'e-por'; }
     if (st.total > 0) {
       const perguntas = Math.min(st.total, N_ALVO);
-      const barraPct = st.feita ? 100 : Math.round(perguntas / N_ALVO * 100);
+      const barraPct = stF ? 100 : Math.round(perguntas / N_ALVO * 100);
       realizacao = '<div class="s-meta">' + st.certas + '/' + st.total + ' certas · ' + pct +
         '% de acerto (alvo ' + ALVO_PCT + '%) · ' + perguntas + '/' + N_ALVO + ' perguntas</div>' +
-        '<div class="bar' + (st.feita ? ' ok' : '') + '"><i style="width:' + barraPct + '%"></i></div>';
+        '<div class="bar' + (stF ? ' ok' : '') + '"><i style="width:' + barraPct + '%"></i></div>';
     } else {
       realizacao = '<div class="s-meta">' + s.banda + ' · ' + (s.modo === 'peixe' ? 'vs fish' : s.modo === 'padrao' ? 'padrão' : 'base') + '</div>';
     }
@@ -442,7 +674,10 @@ function pintaPlano() {
     b.className = 's-go';
     b.textContent = st.feita ? 'Rever' : (pct >= ALVO_PCT ? 'Marcar feita' : 'Treinar');
     b.addEventListener('click', () => {
-      if (pct >= ALVO_PCT && !st.feita) { st.feita = true; e[s.id] = st; guarda(e); pintaPlano(); return; }
+      if (pct >= ALVO_PCT && !stF) {
+        stLocal.feita = true; stLocal.dias = stLocal.dias || { feita: hojeISO() }; stLocal.at = Date.now();
+        e[s.id] = stLocal; guarda(e); sincronizaDepois(1500); pintaPlano(); return;
+      }
       sessaoAtiva = s.id;
       e._ativa = s.id; guarda(e);
       tab('Treino'); novaMao();
@@ -526,7 +761,7 @@ function respondeu(idx) {
   certas += ok ? 1 : 0; total++; alvoC += ok ? 1 : 0; alvoT++;
   const st = estado();
   const rec = st[sessaoAtiva] || { certas: 0, total: 0, feita: false };
-  rec.certas += ok ? 1 : 0; rec.total++;
+  rec.certas += ok ? 1 : 0; rec.total++; rec.at = Date.now();
   st[sessaoAtiva] = rec;
   // stats globais (precisão, sequência, por posição e por situação)
   const g = st._g || { certas: 0, total: 0, streak: 0, best: 0 };
@@ -540,7 +775,9 @@ function respondeu(idx) {
   const ps = st._sit || {}; const sk = dE.sit || '?';
   ps[sk] = ps[sk] || { certas: 0, total: 0 };
   ps[sk].total++; ps[sk].certas += ok ? 1 : 0; st._sit = ps;
+  st._nome = st._nome || nomeAparelho();
   guarda(st);
+  sincronizaDepois(9000);
   const fb = document.getElementById('feedback');
   fb.className = 'feedback ' + (ok ? 'ok' : 'bad');
   let det = 'Range: ' + (dE.impresso != null ? dE.impresso + '% das combos' : '—') +
@@ -592,7 +829,9 @@ document.getElementById('btnFeita').addEventListener('click', () => {
         (PASSO_REV.find(p => p > pend[0].passo) || 21) + ' dias para a próxima.';
     }
   }
+  rec.at = Date.now();
   st[sessaoAtiva] = rec; guarda(st);
+  sincroniza().then(r => { if (r.ok) { pintaSync(); pintaPlano(); pintaMetodo(); } });
   document.getElementById('btnFeita').style.display = 'none';
   const stt = document.getElementById('scorebar');
   if (stt.textContent.indexOf('Revisão') !== 0) {
@@ -607,13 +846,22 @@ function pctClasse(c, t) {
 }
 function pintaStats() {
   const st = estado();
-  const g = st._g || { certas: 0, total: 0, streak: 0, best: 0 };
+  const juntos = statsJuntos(st);
+  const g = juntos.g;
   document.getElementById('kAcc').textContent = g.total ? Math.round(g.certas / g.total * 100) + '%' : '—';
   document.getElementById('kResp').textContent = g.total || '—';
   document.getElementById('kStreak').textContent = g.streak || 0;
   document.getElementById('kBest').textContent = g.best || 0;
-  const feitas = TRILHO.filter(s => (st[s.id] || {}).feita).length;
+  const feitas = TRILHO.filter(s => feitaGlobal(st, s.id)).length;
   document.getElementById('kSess').textContent = feitas + '/65';
+  const apEl = document.getElementById('statsAparelhos');
+  if (apEl) {
+    if (st._chave) {
+      const nomes = aparelhosLigados(st);
+      apEl.innerHTML = '<div class="stat-row"><div class="stat-nome">Aparelhos ligados</div><div class="stat-val">' +
+        nomes.join(' · ') + '</div></div>';
+    } else apEl.innerHTML = '';
+  }
   function linhas(obj, titulo) {
     const div = document.getElementById(titulo);
     div.innerHTML = '';
@@ -629,8 +877,8 @@ function pintaStats() {
       div.appendChild(row);
     });
   }
-  linhas(st._pos, 'statsPos');
-  linhas(st._sit, 'statsSit');
+  linhas(juntos.pos, 'statsPos');
+  linhas(juntos.sit, 'statsSit');
 }
 document.getElementById('btnResetStats').addEventListener('click', () => {
   const st = estado();
@@ -666,28 +914,30 @@ function pintaMetodo() {
   const st = estado();
   const hoje = hojeISO();
   // novas: por ordem do trilho, ainda não feitas (dá prioridade às começadas e não acabadas)
-  const naoFeitas = TRILHO.filter(s => !((st[s.id] || {}).feita));
-  const comecadas = naoFeitas.filter(s => (st[s.id] || {}).total > 0);
-  const porComecar = naoFeitas.filter(s => !(st[s.id] || {}).total);
+  const naoFeitas = TRILHO.filter(s => !feitaGlobal(st, s.id));
+  const comecadas = naoFeitas.filter(s => somaSessao(st, s.id).total > 0);
+  const porComecar = naoFeitas.filter(s => !somaSessao(st, s.id).total);
   const listaNovas = comecadas.concat(porComecar);
-  // revisões devidas
+  // revisões devidas (contando o que foi marcado em qualquer aparelho)
   const revs = [];
   TRILHO.forEach(s => {
-    const r = revsDevidas(st[s.id], hoje);
+    const dias = diasGlobal(st, s.id);
+    const r = revsDevidas({ dias: dias }, hoje);
     if (r.length) revs.push({ s: s, atraso: r[0].passo, desde: r[0].vence });
   });
   revs.sort((a, b) => (a.desde < b.desde ? -1 : 1));
 
-  const feitas = TRILHO.filter(s => (st[s.id] || {}).feita).length;
+  const feitas = TRILHO.filter(s => feitaGlobal(st, s.id)).length;
   const restam = TRILHO.length - feitas;
+  pintaSync();
   document.getElementById('mNovas').textContent = Math.min(listaNovas.length, NOVAS_POR_DIA);
   document.getElementById('mRevs').textContent = revs.length;
   document.getElementById('mFeitas').textContent = feitas + '/65';
   document.getElementById('mDias').textContent = restam ? Math.ceil(restam / NOVAS_POR_DIA) : '✓';
 
   function linha(s, etiqueta, extra) {
-    const stS = st[s.id] || { certas: 0, total: 0 };
-    const pct = stS.total ? Math.round(stS.certas / stS.total * 100) : -1;
+    const stS = somaSessao(st, s.id);
+    const pct = stS.pct;
     const row = document.createElement('div');
     row.className = 'sessao';
     row.innerHTML = '<div class="s-info"><div class="s-nome">' + s.nome + ' <span class="estado ' +
@@ -864,9 +1114,40 @@ sel.value = '0';
 pintaSpot(POSD[0]);   // pintar logo o primeiro spot — a grelha nunca abre toda cinzenta
 
 // arranque — abre no Plano
+// ligar a sincronização por link: ?servidor=<endereco>&codigo=<chave>
+(function ligarPorLink() {
+  try {
+    const q = new URLSearchParams(location.search || '');
+    const servidor = (q.get('servidor') || '').trim();
+    const codigo = (q.get('codigo') || '').trim().toLowerCase();
+    if (!servidor && !codigo) return;
+    const st = estado();
+    if (/^https?:\/\//.test(servidor)) st._url = servidor.replace(/\/+$/, '');
+    if (/^[a-z0-9-]{6,64}$/.test(codigo)) st._chave = codigo;
+    st._nome = st._nome || nomeAparelho();
+    guarda(st);
+    if (history.replaceState) history.replaceState(null, '', location.pathname);
+    if (st._chave) sincroniza();
+  } catch (e) {}
+})();
 sessaoAtiva = estado()._ativa || null;
+idAparelho();            // este aparelho passa a ter nome e id próprios
+pintaSync();
 pintaPlano();
 novaMao();
+
+// sincronização automática: ao abrir, ao voltar à app e depois de treinar
+if (estado()._chave) {
+  setTimeout(() => {
+    sincroniza().then(r => { if (r.ok) { pintaSync(); pintaPlano(); pintaMetodo(); pintaStats(); } });
+  }, 1200);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && estado()._chave) {
+    sincroniza().then(r => { if (r.ok) { pintaSync(); pintaPlano(); pintaMetodo(); pintaStats(); } });
+  }
+});
+window.addEventListener('online', () => { if (estado()._chave) sincroniza(); });
 </script>
 </body>
 </html>
