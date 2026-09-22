@@ -134,6 +134,68 @@
     .table-wrap { height: 330px; }
     .seat { width: 54px; height: 54px; font-size: 0.85rem; }
   }
+
+  /* ---------- tablet a partir de 700px (iPad em retrato) ---------- */
+  @media (min-width: 700px) {
+    body { padding: 18px 24px 90px; }
+    h1 { font-size: 1.3rem; }
+    .sub { font-size: 0.82rem; }
+    .table-wrap { height: 440px; max-width: 560px; }
+    .seat { width: 74px; height: 74px; font-size: 1.12rem; }
+    .badge { font-size: 0.6rem; padding: 3px 9px; }
+    .seat .stack { font-size: 0.7rem; }
+    .card { width: 54px; height: 76px; font-size: 1.5rem; }
+    .card .s { font-size: 1.15rem; }
+    .prompt { font-size: 0.92rem; }
+    .actions button { padding: 18px; font-size: 1.05rem; }
+    .feedback { font-size: 1rem; }
+    .porque, .ideias { font-size: 0.88rem; }
+    .plano { max-width: 660px; }
+    .sessao { padding: 13px 15px; }
+    .s-nome { font-size: 0.95rem; }
+    .s-meta { font-size: 0.76rem; }
+    .s-go { padding: 9px 16px; font-size: 0.8rem; }
+    .seg select, select { font-size: 0.95rem; padding: 13px 14px; max-width: 660px; }
+    .kpi-n { font-size: 1.45rem; }
+    .kpi-l { font-size: 0.7rem; }
+    .stat-row { font-size: 0.88rem; padding: 12px 14px; }
+    .grid { grid-template-columns: repeat(13, 44px); gap: 3px; }
+    .cell { width: 44px; height: 44px; font-size: 0.72rem; }
+    .info, .leg { font-size: 0.85rem; }
+    .legend { font-size: 0.8rem; }
+    .nav button { font-size: 0.76rem; padding: 13px 0 11px; }
+    .nav button svg { width: 24px; height: 24px; }
+  }
+
+  /* ---------- ecrãs grandes / iPad em paisagem (a partir de 1000px) ---------- */
+  @media (min-width: 1000px) {
+    h1 { font-size: 1.5rem; margin-bottom: 2px; }
+    .grid { grid-template-columns: repeat(13, 56px); gap: 4px; }
+    .cell { width: 56px; height: 56px; font-size: 0.88rem; }
+    /* Treino: mesa à esquerda, decisão e explicação à direita */
+    .treino-grid { max-width: 1120px; margin: 0 auto; display: grid;
+                   grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: start; }
+    .table-wrap { height: 560px; max-width: none; margin: 0; }
+    .actions, .feedback, .porque, .ideias, .scorebar, .next-row { max-width: none; }
+    .actions button { padding: 20px; font-size: 1.1rem; }
+    .feedback { font-size: 1.05rem; margin-top: 0; }
+    /* Plano e Método: listas em duas colunas, para aproveitar a largura */
+    .plano { max-width: 1100px; }
+    #planoLista { column-count: 2; column-gap: 20px; }
+    #planoLista .sessao { break-inside: avoid; }
+    #mListaNovas, #mListaRevs { column-count: 2; column-gap: 20px; }
+    #mListaNovas .sessao, #mListaRevs .sessao, #mListaNovas .stat-row, #mListaRevs .stat-row { break-inside: avoid; }
+    .kpi { padding: 16px 10px; }
+    .kpi-n { font-size: 1.7rem; }
+    .leg { font-size: 0.9rem; }
+    .nav { padding-left: max(0px, calc(50% - 380px)); padding-right: max(0px, calc(50% - 380px)); }
+  }
+
+  /* ecrãs muito largos: mesa e decisão ainda mais folgadas */
+  @media (min-width: 1400px) {
+    .treino-grid { max-width: 1280px; }
+    .plano { max-width: 1240px; }
+  }
 </style>
 </head>
 <body>
@@ -142,6 +204,8 @@
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
+   <div class="treino-grid">
+    <div class="col-mesa">
     <div class="table-wrap">
       <div class="oval"></div>
       <div class="dbtn" id="dbtn">D</div>
@@ -155,6 +219,8 @@
         <div class="prompt" id="prompt">Escolhe uma sessão no Plano.</div>
       </div>
     </div>
+    </div>
+    <div class="col-decisao">
     <div class="actions" id="acoes"></div>
     <div class="feedback" id="feedback"></div>
     <div class="porque" id="porque"></div>
@@ -184,6 +250,8 @@
     <div class="next-row"><button class="next-btn" id="btnNext">Próxima →</button></div>
     <div class="scorebar" id="scorebar"></div>
     <div style="text-align:center"><button class="feita-btn" id="btnFeita">✓ Sessão feita</button></div>
+    </div>
+   </div>
   </div>
 
   <!-- PLANO (abre por defeito) -->
