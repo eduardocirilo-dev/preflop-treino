@@ -68,6 +68,9 @@
   .porque { max-width: 480px; margin: 10px auto 0; background: #1e1e1e; border-left: 3px solid #b57e2c;
             border-radius: 6px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.5; color: #c8c8c8; display: none; }
   .porque b { color: #c9a84c; }
+  .s-anular { background: none; border: 1px solid #3a3a3a; color: #8a8a8a; font-size: 0.68rem;
+              padding: 7px 10px; border-radius: 8px; cursor: pointer; margin-left: 6px; }
+  .s-anular:hover { color: #e05555; border-color: #6b2b2b; }
   .syncbox { background: #1b1b1b; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px 14px; }
   .sync-linha { font-size: 0.82rem; color: #b5b5b5; margin-bottom: 8px; line-height: 1.45; }
   .sync-apar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
@@ -205,7 +208,7 @@
 </head>
 <body>
   <h1>Treino Pré-flop · Spin &amp; Go Nitro</h1>
-  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v10</span></div>
+  <div class="sub">Quintas + Nitrology · 65 sessões · só pré-flop · <span id="versao">v11</span></div>
 
   <!-- TREINO -->
   <div class="pane" id="paneTreino">
@@ -365,7 +368,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Charts</button>
   </nav>
 
-  <div class="carimbo" id="build">build 22/09/2026 03:20 · v10 · sincronização entre aparelhos · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
+  <div class="carimbo" id="build">build 22/09/2026 04:10 · v11 · anular sessão + marcar feita só com 20 perguntas · dados: posicoes.json (134 contextos auditados) + trilho do treino-quintas</div>
 
 <script>
 'use strict';
@@ -458,16 +461,26 @@ function idAparelho() {
 // ---- leitura do progresso a contar com TODOS os aparelhos ----
 function registosSessao(st, id) {
   const out = [];
-  if (st[id] && (st[id].total || st[id].feita)) out.push(st[id]);
+  if (st[id] && (st[id].total || st[id].feita || st[id].anulada)) out.push(st[id]);
   Object.keys(st._outros || {}).forEach(d => {
     const r = (st._outros[d].sessoes || {})[id];
-    if (r && (r.total || r.feita)) out.push(r);
+    if (r && (r.total || r.feita || r.anulada)) out.push(r);
   });
   return out;
 }
-function feitaGlobal(st, id) { return registosSessao(st, id).some(r => r.feita); }
+// o registo mais recente manda: é o que permite ANULAR uma sessão fechada por engano
+function registoRecente(st, id) {
+  const rs = registosSessao(st, id);
+  if (!rs.length) return null;
+  return rs.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a));
+}
+function feitaGlobal(st, id) {
+  const r = registoRecente(st, id);
+  return !!(r && r.feita && !r.anulada);
+}
 function diasGlobal(st, id) {
   const out = {};
+  if (!feitaGlobal(st, id)) return out;   // anulada: não há revisões a contar
   registosSessao(st, id).forEach(r => {
     const d = r.dias || {};
     Object.keys(d).forEach(k => {
@@ -672,10 +685,13 @@ function pintaPlano() {
       '<span class="estado ' + estadoCls + '">' + estadoTxt + '</span></div>' + realizacao + '</div>';
     const b = document.createElement('button');
     b.className = 's-go';
-    b.textContent = st.feita ? 'Rever' : (pct >= ALVO_PCT ? 'Marcar feita' : 'Treinar');
+    // «Marcar feita» só aparece depois das 20 perguntas — antes disso é treinar
+    const podeMarcar = !stF && st.total >= N_ALVO && pct >= ALVO_PCT;
+    b.textContent = stF ? 'Rever' : (podeMarcar ? 'Marcar feita' : 'Treinar');
     b.addEventListener('click', () => {
-      if (pct >= ALVO_PCT && !stF) {
-        stLocal.feita = true; stLocal.dias = stLocal.dias || { feita: hojeISO() }; stLocal.at = Date.now();
+      if (podeMarcar) {
+        stLocal.feita = true; stLocal.anulada = false;
+        stLocal.dias = stLocal.dias || { feita: hojeISO() }; stLocal.at = Date.now();
         e[s.id] = stLocal; guarda(e); sincronizaDepois(1500); pintaPlano(); return;
       }
       sessaoAtiva = s.id;
@@ -683,6 +699,22 @@ function pintaPlano() {
       tab('Treino'); novaMao();
     });
     row.appendChild(b);
+    // anular: desfaz uma sessão fechada por engano (pede confirmação)
+    if (stF) {
+      const ba = document.createElement('button');
+      ba.className = 's-anular';
+      ba.textContent = 'anular';
+      ba.title = 'Desfazer: repor a sessão como por fazer';
+      ba.addEventListener('click', () => {
+        if (!confirm('Anular esta sessão?\n\nVolta a ficar por fazer e as revisões dela são canceladas.')) return;
+        const r = e[s.id] || {};
+        r.feita = false; r.anulada = true; delete r.dias; r.at = Date.now();
+        e[s.id] = r; guarda(e);
+        sincronizaDepois(1200);
+        pintaPlano(); pintaMetodo(); pintaStats();
+      });
+      row.appendChild(ba);
+    }
     div.appendChild(row);
   });
 }
