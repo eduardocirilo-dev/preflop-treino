@@ -301,7 +301,7 @@
   <button id="tabProgresso"><span class="ic">🏅</span>Progresso</button>
 </nav>
 
-<div class="carimbo" id="build">build 22/09/2026 03:02 · dados bcabfe35 · 5 spots × 15 stacks do Quintas (0 divergências)</div>
+<div class="carimbo" id="build">build 22/09/2026 03:03 · dados bcabfe35 · 5 spots × 15 stacks do Quintas (0 divergências)</div>
 
 <script>
 'use strict';
@@ -644,21 +644,23 @@ function responder(sim) {
 
 function explicar(q) {
   const sp = SPOTS[q.spot], h = q.mao;
+  const jogos = sp.jogos[String(q.stack)];
   const par = h[0] === h[1], temA = (h[0] === 'A' || h[1] === 'A'), temK = (h[0] === 'K' || h[1] === 'K');
+  const muitas = jogos >= 100;   /* entram quase todas as mãos */
   let r;
   if (q.joga) {
     if (par) r = 'Tens um par — as duas cartas são iguais. É uma mão forte.';
     else if (temA) r = 'Tens um Ás, a carta mais forte do baralho. É sempre para continuar.';
     else if (temK) r = 'Tens um Rei — a segunda carta mais forte. Também entra.';
-    else r = 'Esta mão entra nesta situação: as cartas ajudam-se (seguidas ou do mesmo naipe).';
+    else r = 'Esta mão entra: as duas cartas ajudam-se (são seguidas ou do mesmo naipe).';
+    if (!muitas) r = 'Esta é uma das mãos boas desta situação. ' + r;
     r += ' ' + (sp.acao === 'Shove' ? 'Empurras tudo: se os outros desistirem levas as fichas da mesa, e se te pagarem ainda tens hipóteses.'
                                     : 'Pagas: pelo preço, esta mão ganha vezes suficientes para valer a pena.');
   } else {
-    r = 'Esta é das poucas que deixas ir: as duas cartas são pequenas e não se ajudam. ' +
-        'Desistir custa-te só o que já estava na mesa.';
+    r = (muitas ? 'Esta é das poucas mãos que deixas ir: ' : 'Esta mão fica de fora porque ') +
+        'as duas cartas são pequenas e não se ajudam. Desistir custa-te só o que já estava na mesa.';
   }
-  const s = sessao, jogos = sp.jogos[String(q.stack)];
-  return r + ' <span style="color:#8d9ab0">(Nesta situação empurras/pagas ' + jogos + ' das 169 mãos.)</span>';
+  return r + ' <span style="color:#8d9ab0">(Nesta situação continuam ' + jogos + ' das 169 mãos.)</span>';
 }
 
 function pintaBarra() {
